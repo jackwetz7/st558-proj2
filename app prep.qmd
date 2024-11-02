@@ -1,0 +1,71 @@
+---
+title: "preparation"
+format: html
+editor: visual
+---
+
+```{r}
+## reading in data
+library(tidyverse)
+options(scipen = 999)
+
+house_data <- read_csv("Melbourne_housing_FULL.csv", col_names = TRUE)
+```
+
+```{r}
+## creating contingency tables for the data
+table(house_data$Type, useNA = "always")
+table(house_data$Rooms, useNA = "always")
+
+table(house_data$Rooms, house_data$Bathroom, useNA = "always")
+table(house_data$Rooms, house_data$Type, useNA = "always")
+```
+
+```{r}
+## numerical summaries of the data
+house_data |>
+  group_by(Suburb) |>
+  summarize(across(Price,
+                   list("mean" = ~ mean(.x, na.rm = TRUE), "median" = ~ median(.x, na.rm = TRUE), "sd" = ~ sd(.x, na.rm = TRUE)),
+                   .names = "{.fn}_{.col}")) |>
+  arrange(mean_Price)
+
+house_data |>
+  group_by(Rooms) |>
+  summarize(across(Landsize,
+                   list("mean" = ~ mean(.x, na.rm = TRUE), "median" = ~ median(.x, na.rm = TRUE), "sd" = ~ sd(.x, na.rm = TRUE)),
+                   .names = "{.fn}_{.col}"))
+```
+                   
+```{r}
+## simple plots
+ggplot(data = house_data, aes(Method)) +
+  geom_bar() +
+  labs(y = "Count", title = "Number of Houses Sold by Each Method")
+
+ggplot(data = house_data, aes(Rooms)) +
+  geom_histogram() +
+  labs(y = "Count", title = "Distribution of House Room Counts")
+```
+
+```{r}
+## multivariate plots
+ggplot(data = house_data, aes(x = Rooms, fill = Type)) +
+  geom_bar() +
+  labs(y = "Count", title = "Number of Houses with Each Room Count by Type")
+
+ggplot(data = house_data, aes(x = Car, y = Price, color = Method)) +
+  geom_point() +
+  labs(title = "Sale Price vs Car Spots by Method") +
+  geom_jitter(width = 0.2, alpha = 0.3)
+```
+
+```{r}
+## additional plots
+ggplot(data = house_data, aes(x = Type, y = Rooms, fill = Price)) +
+  geom_tile() +
+  labs(title = "Screen Time by Age & Device Model")
+
+
+```
+
