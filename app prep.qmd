@@ -6,10 +6,7 @@ editor: visual
 
 ```{r}
 ## reading in data
-library(tidyverse)
-options(scipen = 999)
-
-house_data <- read_csv("Melbourne_housing_FULL.csv", col_names = TRUE)
+ta
 ```
 
 ```{r}

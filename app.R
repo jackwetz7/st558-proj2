@@ -17,22 +17,24 @@ ui <- fluidPage(
       h2("Subset the Data"),
       
       selectInput(
-        inputId = "cat_var",
-        label = "Categorical Variable",
-        choices = c("Suburb",
-                    "Number of Rooms" = "Rooms",  # treating as categorical & numerical
-                    "Type of House" = "Type",
-                    "Method of Sale" = "Method",
-                    "Postal Code" = "Postcode",
-                    "Number of Bathrooms" = "Bathroom",
-                    "Number of Carspots" = "Cars",
-                    "Governing Council for the Area" = "CouncilArea",
-                    "General Region" = "Regionname")
+        inputId = "house_type",
+        label = "Choose the House Type:",
+        choices = c("All",
+                    "House, Cottage, Villa" = "h",
+                    "Unit, Duplex" = "u",
+                    "Townhouse" = "t")
+      ),
+      
+      selectInput(
+        inputId = "house_region",
+        label = "Choose the House Region:",
+        choices = c("All",
+                    unique(house_data$Regionname[house_data$Regionname != "#N/A"]))
       ),
       
       selectInput(
         inputId = "num_var_1",
-        label = "Numerical Variable 1",
+        label = "Choose a Numerical Variable:",
         choices = c("Sale Price" = "Price",
                     "Number of Rooms" = "Rooms",
                     "Land Size in Meters" = "Landsize",
@@ -43,7 +45,7 @@ ui <- fluidPage(
       
       selectInput(
         inputId = "num_var_2",
-        label = "Numerical Variable 2",
+        label = "Choose another Numerical Variable:",
         choices = c("Sale Price" = "Price",
                     "Number of Rooms" = "Rooms",
                     "Land Size in Meters" = "Landsize",
@@ -74,7 +76,13 @@ ui <- fluidPage(
         
         tabPanel(title = "Data Download",
                  downloadButton("downloadData", "Download Data"),
-                 DT::DTOutput("house_table"))
+                 DT::DTOutput("house_table")),
+        
+        tabPanel(title = "Data Exploration",
+                 radioButtons(inputId = "sum_choice",
+                              label = "Summaries to Display",
+                              choices = c("Categorical", "Numerical")),
+                 )
         
       )
 
@@ -110,7 +118,7 @@ server <- function(input, output, session) {
     num_range_1 <- range(house_data[[input$num_var_1]], na.rm = TRUE)
     
     sliderInput(inputId = "num_range_1",
-                label = paste("Values of", input$num_var_1),
+                label = paste("Values of:", input$num_var_1),
                 min = num_range_1[1],
                 max = num_range_1[2],
                 value = num_range_1)
@@ -122,7 +130,7 @@ server <- function(input, output, session) {
     num_range_2 <- range(house_data[[input$num_var_2]], na.rm = TRUE)
     
     sliderInput(inputId = "num_range_2",
-                label = paste("Values of", input$num_var_2),
+                label = paste("Values of:", input$num_var_2),
                 min = num_range_2[1],
                 max = num_range_2[2],
                 value = num_range_2)
@@ -134,9 +142,10 @@ server <- function(input, output, session) {
   observeEvent(input$sample_data, {
     
     house_sample$data <- house_data |>
-      select(input$cat_var, input$num_var_1, input$num_var_2) |>
       filter(between(!!sym(input$num_var_1), input$num_range_1[1], input$num_range_1[2]),
-             between(!!sym(input$num_var_2), input$num_range_2[1], input$num_range_2[2]))
+             between(!!sym(input$num_var_2), input$num_range_2[1], input$num_range_2[2]),
+             Type == input$house_type | input$house_type == "All",
+             Regionname == input$house_region | input$house_region == "All")
   })
   
   output$house_table <- DT::renderDT({
@@ -152,6 +161,9 @@ server <- function(input, output, session) {
       write.csv(house_sample$data, con)
     }
   )
+  
+  ## create summaries based on user selection
+
   
 }
 
