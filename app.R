@@ -56,7 +56,27 @@ ui <- fluidPage(
       
     ),
     mainPanel(
-      tableOutput("test_data")
+      
+      tabsetPanel(
+        
+        tabPanel(title = "About",
+                 p("The purpose of this app is to dynamically analyze and explore housing market data from Melbourne, Australia."),
+                 p("The data provides information about houses sold in Melbourne, Australia from 2016-2018.
+                   The variables include the price the house was sold at along with information about the house and where it is located.
+                   More information about this data can be found at:", 
+                   a(href = "https://www.kaggle.com/datasets/anthonypino/melbourne-housing-market", "This Link")),
+                 p("The sidebar allows the user to create a subset of the data based on specific variables and data values."),
+                 p("The About Tab (this tab) provides information about the app and the data."),
+                 p("The Data Download Tab allows the user to download a csv file of the data, subsetted if sidebar selections were made."),
+                 p("The Data Exploration Tab displays numeric and graphical summaries of the data based on sidebar selections made."),
+                 img(src = "https://content.r9cdn.net/rimg/dimg/e7/e2/a092e93b-city-13998-1641eaba8a3.jpg?width=1366&height=768&xhint=1016&yhint=1024&crop=true",
+                     height = "600px", width = "1200px")),
+        
+        tabPanel(title = "Data Download",
+                 downloadButton("downloadData", "Download Data"),
+                 DT::DTOutput("house_table"))
+        
+      )
 
     )
   )
@@ -109,7 +129,7 @@ server <- function(input, output, session) {
   })
   
   ## create sample from full data set based on user selections
-  house_sample <- reactiveValues()
+  house_sample <- reactiveValues(data = house_data)
   
   observeEvent(input$sample_data, {
     
@@ -119,9 +139,19 @@ server <- function(input, output, session) {
              between(!!sym(input$num_var_2), input$num_range_2[1], input$num_range_2[2]))
   })
   
-  output$test_data <- renderTable({
+  output$house_table <- DT::renderDT({
     house_sample$data
   })
+  
+  ## download the data set
+  output$downloadData <- downloadHandler(
+    filename = function() {
+      paste('melbourne_sample_data', Sys.Date(), '.csv', sep = '')
+    },
+    content = function(con) {
+      write.csv(house_sample$data, con)
+    }
+  )
   
 }
 
