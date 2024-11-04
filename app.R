@@ -61,6 +61,7 @@ ui <- fluidPage(
       
       tabsetPanel(
         
+        ## about tab
         tabPanel(title = "About",
                  p("The purpose of this app is to dynamically analyze and explore housing market data from Melbourne, Australia."),
                  p("The data provides information about houses sold in Melbourne, Australia from 2016-2018.
@@ -74,18 +75,32 @@ ui <- fluidPage(
                  img(src = "https://content.r9cdn.net/rimg/dimg/e7/e2/a092e93b-city-13998-1641eaba8a3.jpg?width=1366&height=768&xhint=1016&yhint=1024&crop=true",
                      height = "600px", width = "1200px")),
         
+        ## data download tab
         tabPanel(title = "Data Download",
                  downloadButton("downloadData", "Download Data"),
                  DT::DTOutput("house_table")),
         
+        ## data exploration tab
         tabPanel(title = "Data Exploration",
                  radioButtons(inputId = "sum_choice",
-                              label = "Summaries to Display",
+                              label = "Summaries to Display:",
                               choices = c("Categorical", "Numerical")),
-                 )
-        
+                 actionButton("sum_data", "Start Summarizing"),
+                 
+                 uiOutput("cat_select_1"),
+                 uiOutput("cat_select_2"),
+                 
+                 conditionalPanel(
+                   condition = "input.sum_choice == 'Categorical'",
+                   tableOutput("one_way_1"),
+                   tableOutput("one_way_2"),
+                   tableOutput("two_way")
+                 ),
+                 
+                 uiOutput("num_select_1"),
+                 uiOutput("num_select_2"),
+                 uiOutput("num_select_cat"))
       )
-
     )
   )
 )
@@ -94,7 +109,7 @@ ui <- fluidPage(
 ## Define server logic
 server <- function(input, output, session) {
   
-  ## prevent user from choosing the same numeric variables
+  ## prevent user from choosing the same numeric variables to subset on
   observeEvent(c(input$num_var_1, input$num_var_2), {
     
     num_var_1 <- input$num_var_1
@@ -162,9 +177,129 @@ server <- function(input, output, session) {
     }
   )
   
-  ## create summaries based on user selection
+  ## create categorical summary ui based on user selection
+  output$cat_select_1 <- renderUI({
 
+    if (input$sum_choice == "Categorical") {
+      
+      selectInput(inputId = "cat_choice_1",
+                  label = "Choose a Categorical Variable:",
+                  choices = c("Suburb",
+                              "Type of House" = "Type",
+                              "Method of Sale" = "Method",
+                              "Postal Code" = "Postcode",
+                              "Governing Council" = "CouncilArea",
+                              "General Region" = "Regionname"),
+                  selected = "Suburb")
+    }
+  })
   
+  output$cat_select_2 <- renderUI({
+    
+    if (input$sum_choice == "Categorical") {
+      
+      selectInput(inputId = "cat_choice_2",
+                  label = "Choose another Categorical Variable:",
+                  choices = c("Suburb",
+                              "Type of House" = "Type",
+                              "Method of Sale" = "Method",
+                              "Postal Code" = "Postcode",
+                              "Governing Council" = "CouncilArea",
+                              "General Region" = "Regionname"),
+                  selected = "Type")
+    }
+  })
+  
+  ## prevent user from choosing the same categorical variables to summarize on
+  observeEvent(c(input$cat_choice_1, input$cat_choice_2), {
+    
+    cat_choice_1 <- input$cat_choice_1
+    cat_choice_2 <- input$cat_choice_2
+    choices <- c("Suburb",
+                 "Type of House" = "Type",
+                 "Method of Sale" = "Method",
+                 "Postal Code" = "Postcode",
+                 "Governing Council" = "CouncilArea",
+                 "General Region" = "Regionname")
+    
+    if (cat_choice_1 == cat_choice_2){
+      choices <- choices[-which(choices == cat_choice_1)]
+      updateSelectizeInput(session,
+                           "cat_choice_2",
+                           choices = choices)
+    }
+  })
+  
+  ## create numerical summary ui based on user selection
+  output$num_select_1 <- renderUI({
+    
+    if (input$sum_choice == "Numerical") {
+      
+      selectInput(inputId = "num_choice_1",
+                  label = "Choose a Numerical Variable:",
+                  choices = c("Sale Price" = "Price",
+                              "Number of Rooms" = "Rooms",
+                              "Land Size in Meters" = "Landsize",
+                              "Year the House was Built" = "YearBuilt"),
+                  selected = "Price")
+    }
+  })
+  
+  output$num_select_2 <- renderUI({
+    
+    if (input$sum_choice == "Numerical") {
+      
+      selectInput(inputId = "num_choice_2",
+                  label = "Choose another Numerical Variable:",
+                  choices = c("Sale Price" = "Price",
+                              "Number of Rooms" = "Rooms",
+                              "Land Size in Meters" = "Landsize",
+                              "Year the House was Built" = "YearBuilt"),
+                  selected = "Rooms")
+    }
+  })
+  
+  output$num_select_cat <- renderUI({
+    
+    if (input$sum_choice == "Numerical") {
+      
+      selectInput(inputId = "num_choice_cat",
+                  label = "Choose a Categorical Variable:",
+                  choices = c("Suburb",
+                              "Type of House" = "Type",
+                              "Method of Sale" = "Method",
+                              "Postal Code" = "Postcode",
+                              "Governing Council" = "CouncilArea",
+                              "General Region" = "Regionname"),
+                  selected = "Suburb")
+    }
+  })
+  
+  ## summarizing data based on variable selections
+  one_way_table_1 <- eventReactive(input$sum_data, {
+    table(house_sample$data[[input$cat_choice_1]], useNA = "always")
+  })
+  
+  output$one_way_1 <- renderTable({
+    one_way_table_1()
+  })
+  
+  one_way_table_2 <- eventReactive(input$sum_data, {
+    table(house_sample$data[[input$cat_choice_2]], useNA = "always")
+  })
+  
+  output$one_way_2 <- renderTable({
+    one_way_table_2()
+  })
+  
+  two_way_table <- eventReactive(input$sum_data, {
+    table(house_sample$data[[input$cat_choice_1]], house_sample$data[[input$cat_choice_2]], useNA = "always")
+  })
+  
+  output$two_way <- renderTable({
+    two_way_table()
+  })
+
 }
 
 ## Run the application 
