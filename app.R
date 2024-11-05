@@ -94,7 +94,8 @@ ui <- fluidPage(
                    condition = "input.sum_choice == 'Categorical'",
                    tableOutput("one_way_1"),
                    tableOutput("one_way_2"),
-                   tableOutput("two_way")
+                   tableOutput("two_way"),
+                   plotOutput("bar_plot")
                  ),
                  
                  uiOutput("num_select_1"),
@@ -275,7 +276,7 @@ server <- function(input, output, session) {
     }
   })
   
-  ## summarizing data based on variable selections
+  ## summarizing data based on categorical variable selections
   one_way_table_1 <- eventReactive(input$sum_data, {
     table(house_sample$data[[input$cat_choice_1]], useNA = "always")
   })
@@ -299,6 +300,21 @@ server <- function(input, output, session) {
   output$two_way <- renderTable({
     two_way_table()
   })
+  
+  plot_data <- eventReactive(input$sum_data, {
+    ggplot(house_sample$data, aes(x = house_sample$data[[input$cat_choice_1]], fill = house_sample$data[[input$cat_choice_2]])) +
+      geom_bar(position = "dodge") +
+      labs(
+        x = input$cat_choice_1,
+        fill = input$cat_choice_2,
+        y = "Count"
+      )
+  })
+  
+  output$bar_plot <- renderPlot({
+    plot_data()
+  })
+  
 
 }
 
