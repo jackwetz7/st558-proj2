@@ -100,7 +100,12 @@ ui <- fluidPage(
                  
                  uiOutput("num_select_1"),
                  uiOutput("num_select_2"),
-                 uiOutput("num_select_cat"))
+                 uiOutput("num_select_cat"),
+                 
+                 conditionalPanel(
+                   condition = "input.sum_choice == 'Numerical'",
+                   tableOutput("num_sum")
+                 ))
       )
     )
   )
@@ -190,8 +195,7 @@ server <- function(input, output, session) {
                               "Method of Sale" = "Method",
                               "Postal Code" = "Postcode",
                               "Governing Council" = "CouncilArea",
-                              "General Region" = "Regionname"),
-                  selected = "Suburb")
+                              "General Region" = "Regionname"))
     }
   })
   
@@ -206,8 +210,7 @@ server <- function(input, output, session) {
                               "Method of Sale" = "Method",
                               "Postal Code" = "Postcode",
                               "Governing Council" = "CouncilArea",
-                              "General Region" = "Regionname"),
-                  selected = "Type")
+                              "General Region" = "Regionname"))
     }
   })
   
@@ -241,8 +244,7 @@ server <- function(input, output, session) {
                   choices = c("Sale Price" = "Price",
                               "Number of Rooms" = "Rooms",
                               "Land Size in Meters" = "Landsize",
-                              "Year the House was Built" = "YearBuilt"),
-                  selected = "Price")
+                              "Year the House was Built" = "YearBuilt"))
     }
   })
   
@@ -255,8 +257,7 @@ server <- function(input, output, session) {
                   choices = c("Sale Price" = "Price",
                               "Number of Rooms" = "Rooms",
                               "Land Size in Meters" = "Landsize",
-                              "Year the House was Built" = "YearBuilt"),
-                  selected = "Rooms")
+                              "Year the House was Built" = "YearBuilt"))
     }
   })
   
@@ -271,9 +272,37 @@ server <- function(input, output, session) {
                               "Method of Sale" = "Method",
                               "Postal Code" = "Postcode",
                               "Governing Council" = "CouncilArea",
-                              "General Region" = "Regionname"),
-                  selected = "Suburb")
+                              "General Region" = "Regionname"))
     }
+  })
+  
+  ## prevent user from choosing the same numerical variables to summarize on
+  observeEvent(c(input$num_choice_1, input$num_choice_2), {
+    
+    num_choice_1 <- input$num_choice_1
+    num_choice_2 <- input$num_choice_2
+    choices <- c("Sale Price" = "Price",
+                 "Number of Rooms" = "Rooms",
+                 "Land Size in Meters" = "Landsize",
+                 "Year the House was Built" = "YearBuilt")
+    
+    if (num_choice_1 == num_choice_2){
+      choices <- choices[-which(choices == num_choice_1)]
+      updateSelectizeInput(session,
+                           "num_choice_2",
+                           choices = choices)
+    }
+  })
+  
+  ## tracking if summarize data button / radio button is clicked
+  sum_tracker <- reactiveVal(FALSE)
+  
+  observeEvent(input$sum_choice, {
+    sum_tracker(FALSE)
+  })
+  
+  observeEvent(input$sum_data, {
+    sum_tracker(TRUE)
   })
   
   ## summarizing data based on categorical variable selections
@@ -282,6 +311,7 @@ server <- function(input, output, session) {
   })
   
   output$one_way_1 <- renderTable({
+    req(sum_tracker(), input$sum_choice == "Categorical")
     one_way_table_1()
   })
   
@@ -290,6 +320,7 @@ server <- function(input, output, session) {
   })
   
   output$one_way_2 <- renderTable({
+    req(sum_tracker(), input$sum_choice == "Categorical")
     one_way_table_2()
   })
   
@@ -298,23 +329,38 @@ server <- function(input, output, session) {
   })
   
   output$two_way <- renderTable({
+    req(sum_tracker(), input$sum_choice == "Categorical")
     two_way_table()
   })
   
-  plot_data <- eventReactive(input$sum_data, {
+  bar_plot_data <- eventReactive(input$sum_data, {
     ggplot(house_sample$data, aes(x = house_sample$data[[input$cat_choice_1]], fill = house_sample$data[[input$cat_choice_2]])) +
       geom_bar(position = "dodge") +
-      labs(
-        x = input$cat_choice_1,
-        fill = input$cat_choice_2,
-        y = "Count"
-      )
+      labs(x = input$cat_choice_1, fill = input$cat_choice_2, y = "Count")
   })
   
   output$bar_plot <- renderPlot({
-    plot_data()
+    req(sum_tracker(), input$sum_choice == "Categorical")
+    bar_plot_data()
   })
   
+  ## summarizing data based on numerical variable selections
+  num_sum_data <- eventReactive(input$sum_data, {
+    house_sample$data |>
+      group_by(!!sym(input$num_choice_cat)) |>
+      summarize(
+        across(
+          c(!!sym(input$num_choice_1), !!sym(input$num_choice_2)),
+          list(mean = ~ mean(.x, na.rm = TRUE), sd = ~ sd(.x, na.rm = TRUE)),
+          .names = "{.fn}_{.col}"
+        )
+      )
+  })
+  
+  output$num_sum <- renderTable({
+    req(sum_tracker(), input$sum_choice == "Numerical")
+    num_sum_data()
+  })
 
 }
 
