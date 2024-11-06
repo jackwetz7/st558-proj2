@@ -104,7 +104,9 @@ ui <- fluidPage(
                  
                  conditionalPanel(
                    condition = "input.sum_choice == 'Numerical'",
-                   tableOutput("num_sum")
+                   tableOutput("num_sum"),
+                   plotOutput("hist_plot"),
+                   plotOutput("scatter_plot")
                  ))
       )
     )
@@ -267,8 +269,7 @@ server <- function(input, output, session) {
       
       selectInput(inputId = "num_choice_cat",
                   label = "Choose a Categorical Variable:",
-                  choices = c("Suburb",
-                              "Type of House" = "Type",
+                  choices = c("Type of House" = "Type",
                               "Method of Sale" = "Method",
                               "Postal Code" = "Postcode",
                               "Governing Council" = "CouncilArea",
@@ -334,7 +335,7 @@ server <- function(input, output, session) {
   })
   
   bar_plot_data <- eventReactive(input$sum_data, {
-    ggplot(house_sample$data, aes(x = house_sample$data[[input$cat_choice_1]], fill = house_sample$data[[input$cat_choice_2]])) +
+    ggplot(house_sample$data, aes(x = !!sym(input$cat_choice_1), fill = !!sym(input$cat_choice_2))) +
       geom_bar(position = "dodge") +
       labs(x = input$cat_choice_1, fill = input$cat_choice_2, y = "Count")
   })
@@ -360,6 +361,29 @@ server <- function(input, output, session) {
   output$num_sum <- renderTable({
     req(sum_tracker(), input$sum_choice == "Numerical")
     num_sum_data()
+  })
+  
+  hist_plot_data <- eventReactive(input$sum_data, {
+    ggplot(house_sample$data, aes(x = !!sym(input$num_choice_1))) +
+      geom_histogram() +
+      labs(x = input$num_choice_1, y = "Count")
+  })
+  
+  output$hist_plot <- renderPlot({
+    req(sum_tracker(), input$sum_choice == "Numerical")
+    hist_plot_data()
+  })
+  
+  scatter_plot_data <- eventReactive(input$sum_data, {
+    ggplot(house_sample$data, aes(x = !!sym(input$num_choice_1), y = !!sym(input$num_choice_2),
+                                  color = !!sym(input$num_choice_cat))) +
+      geom_point() +
+      labs(x = input$num_choice_1, y = input$num_choice_2)
+  })
+  
+  output$scatter_plot <- renderPlot({
+    req(sum_tracker(), input$sum_choice == "Numerical")
+    scatter_plot_data()
   })
 
 }
