@@ -65,5 +65,10 @@ ggplot(data = house_data, aes(x = Car, y = Price, color = Method)) +
 ggplot(data = house_data, aes(x = Rooms, y = Type, fill = Price)) +
   geom_tile() +
   labs()
+
+ggplot(data = house_data, aes(x = Type, y = Price)) +
+  geom_violin(alpha = 0.7) +
+  labs(title = "Distribution of Sale Price by Type", x = "House Type", y = "Sale Price")
 ```
+
 

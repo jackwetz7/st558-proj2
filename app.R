@@ -118,7 +118,8 @@ ui <- fluidPage(
                    uiOutput("sum_title"),
                    tableOutput("num_sum"),
                    withSpinner(plotOutput("hist_plot")),
-                   withSpinner(plotOutput("scatter_plot"))
+                   withSpinner(plotOutput("scatter_plot")),
+                   withSpinner(plotOutput("violin_plot"))
                  ))
       )
     )
@@ -463,6 +464,19 @@ server <- function(input, output, session) {
   output$scatter_plot <- renderPlot({
     req(sum_tracker(), input$sum_choice == "Numerical")
     scatter_plot_data()
+  })
+  
+  violin_plot_data<- eventReactive(input$sum_data, {
+    ggplot(house_sample$data |> drop_na(input$num_choice_1, input$num_choice_cat), 
+           aes(x = !!sym(input$num_choice_cat), y = !!sym(input$num_choice_1))) +
+      geom_violin(fill = "orange", color = "black") +
+      labs(x = input$num_choice_cat, y = input$num_choice_1,
+           title = paste("Distribution of", input$num_choice_1, "by", input$num_choice_cat))
+  })
+  
+  output$violin_plot <- renderPlot({
+    req(sum_tracker(), input$sum_choice == "Numerical")
+    violin_plot_data()
   })
 
 }
