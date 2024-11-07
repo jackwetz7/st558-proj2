@@ -2,10 +2,14 @@ library(shiny)
 library(shinyalert)
 library(shinycssloaders)
 library(tidyverse)
+library(rsconnect)
 
 options(scipen = 999)
 
-house_data <- read_csv("Melbourne_housing_FULL.csv", col_names = TRUE)
+house_data <- readRDS("house_data.rds")
+
+house_data <- house_data |>
+  select(Rooms, Type, Price, Method, Car, Landsize, YearBuilt, CouncilArea, Regionname)
 
 ## Define UI
 ui <- fluidPage(
@@ -212,7 +216,6 @@ server <- function(input, output, session) {
                   label = "Choose a Categorical Variable:",
                   choices = c("Type of House" = "Type",
                               "Method of Sale" = "Method",
-                              "Postal Code" = "Postcode",
                               "Governing Council" = "CouncilArea",
                               "General Region" = "Regionname"))
     }
@@ -226,7 +229,6 @@ server <- function(input, output, session) {
                   label = "Choose another Categorical Variable:",
                   choices = c("Type of House" = "Type",
                               "Method of Sale" = "Method",
-                              "Postal Code" = "Postcode",
                               "Governing Council" = "CouncilArea",
                               "General Region" = "Regionname"))
     }
@@ -253,7 +255,6 @@ server <- function(input, output, session) {
     cat_choice_2 <- input$cat_choice_2
     choices <- c("Type of House" = "Type",
                  "Method of Sale" = "Method",
-                 "Postal Code" = "Postcode",
                  "Governing Council" = "CouncilArea",
                  "General Region" = "Regionname")
     
@@ -302,7 +303,6 @@ server <- function(input, output, session) {
                   label = "Choose a Categorical Variable:",
                   choices = c("Type of House" = "Type",
                               "Method of Sale" = "Method",
-                              "Postal Code" = "Postcode",
                               "Governing Council" = "CouncilArea",
                               "General Region" = "Regionname"))
     }
@@ -442,9 +442,9 @@ server <- function(input, output, session) {
   
   hist_plot_data <- eventReactive(input$sum_data, {
     ggplot(house_sample$data |> drop_na(input$num_choice_1), aes(x = !!sym(input$num_choice_1))) +
-      geom_histogram(fill = "green", color = "black") +
-      labs(x = input$num_choice_1, y = "Count", 
-           title = paste("Distribution of", input$num_choice_1))
+      geom_boxplot(fill = "green", color = "black") +
+      labs(x = input$num_choice_1,
+           title = paste("Boxplot of", input$num_choice_1))
   })
   
   output$hist_plot <- renderPlot({

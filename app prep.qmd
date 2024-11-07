@@ -71,4 +71,12 @@ ggplot(data = house_data, aes(x = Type, y = Price)) +
   labs(title = "Distribution of Sale Price by Type", x = "House Type", y = "Sale Price")
 ```
 
+```{r}
+## cant deploy, save for later
+
+temp_data <- read_csv("Melbourne_housing_FULL.csv", col_names = TRUE)
+
+saveRDS(temp_data, "house_data.rds")
+
+```
 

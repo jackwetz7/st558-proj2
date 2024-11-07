@@ -1,0 +1,12 @@
+name: st558-proj2
+title: st558-proj2
+username: jackwetz7
+account: jackwetz7
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 13260498
+bundleId: 9327294
+url: https://jackwetz7.shinyapps.io/st558-proj2/
+version: 1
+asMultiple: FALSE
+asStatic: FALSE
