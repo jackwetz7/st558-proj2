@@ -1,4 +1,6 @@
 library(shiny)
+library(shinyalert)
+library(shinycssloaders)
 library(tidyverse)
 
 options(scipen = 999)
@@ -73,7 +75,8 @@ ui <- fluidPage(
                  p("The sidebar allows the user to create a subset of the data based on specific variables and data values."),
                  p("The About Tab (this tab) provides information about the app and the data."),
                  p("The Data Download Tab allows the user to download a csv file of the data, subsetted if sidebar selections were made."),
-                 p("The Data Exploration Tab displays numeric and graphical summaries of the data based on sidebar selections made."),
+                 p("The Data Exploration Tab displays tables and graphical summaries of the data based on the subsetted dataset.
+                   The user can choose to create categorical or numerical summaries and which variables to use for the summaries."),
                  img(src = "https://content.r9cdn.net/rimg/dimg/e7/e2/a092e93b-city-13998-1641eaba8a3.jpg?width=1366&height=768&xhint=1016&yhint=1024&crop=true",
                      height = "600px", width = "1200px")),
         
@@ -101,9 +104,9 @@ ui <- fluidPage(
                    tableOutput("one_way_2"),
                    uiOutput("table_title_3"),
                    tableOutput("two_way"),
-                   plotOutput("bar_plot"),
-                   plotOutput("bar_plot2"),
-                   plotOutput("heatmap_plot")
+                   withSpinner(plotOutput("bar_plot")),
+                   withSpinner(plotOutput("bar_plot2")),
+                   withSpinner(plotOutput("heatmap_plot"))
                  ),
                  
                  uiOutput("num_select_1"),
@@ -114,8 +117,8 @@ ui <- fluidPage(
                    condition = "input.sum_choice == 'Numerical'",
                    uiOutput("sum_title"),
                    tableOutput("num_sum"),
-                   plotOutput("hist_plot"),
-                   plotOutput("scatter_plot")
+                   withSpinner(plotOutput("hist_plot")),
+                   withSpinner(plotOutput("scatter_plot"))
                  ))
       )
     )
@@ -179,6 +182,10 @@ server <- function(input, output, session) {
              between(!!sym(input$num_var_2), input$num_range_2[1], input$num_range_2[2]),
              Type == input$house_type | input$house_type == "All",
              Regionname == input$house_region | input$house_region == "All")
+    
+    if (nrow(house_sample$data) == 0) {
+      shinyalert(title = "Invalid Data", "The subsetted dataset has no rows.", type = "error")
+    }
   })
   
   output$house_table <- DT::renderDT({
