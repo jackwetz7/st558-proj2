@@ -37,6 +37,7 @@ ui <- fluidPage(
         label = "Choose a Numerical Variable:",
         choices = c("Sale Price" = "Price",
                     "Number of Rooms" = "Rooms",
+                    "Number of Carspots" = "Car",
                     "Land Size in Meters" = "Landsize",
                     "Year the House was Built" = "YearBuilt")
       ),
@@ -48,6 +49,7 @@ ui <- fluidPage(
         label = "Choose another Numerical Variable:",
         choices = c("Sale Price" = "Price",
                     "Number of Rooms" = "Rooms",
+                    "Number of Carspots" = "Car",
                     "Land Size in Meters" = "Landsize",
                     "Year the House was Built" = "YearBuilt")
       ),
@@ -89,6 +91,7 @@ ui <- fluidPage(
                  
                  uiOutput("cat_select_1"),
                  uiOutput("cat_select_2"),
+                 uiOutput("cat_select_num"),
                  
                  conditionalPanel(
                    condition = "input.sum_choice == 'Categorical'",
@@ -99,7 +102,8 @@ ui <- fluidPage(
                    uiOutput("table_title_3"),
                    tableOutput("two_way"),
                    plotOutput("bar_plot"),
-                   plotOutput("bar_plot2")
+                   plotOutput("bar_plot2"),
+                   plotOutput("heatmap_plot")
                  ),
                  
                  uiOutput("num_select_1"),
@@ -129,6 +133,7 @@ server <- function(input, output, session) {
     num_var_2 <- input$num_var_2
     choices <- c("Sale Price" = "Price",
                  "Number of Rooms" = "Rooms",
+                 "Number of Carspots" = "Car",
                  "Land Size in Meters" = "Landsize",
                  "Year the House was Built" = "YearBuilt")
     
@@ -219,6 +224,20 @@ server <- function(input, output, session) {
     }
   })
   
+  output$cat_select_num <- renderUI({
+    
+    if (input$sum_choice == "Categorical") {
+      
+      selectInput(inputId = "cat_choice_num",
+                  label = "Choose a Color Variable:",
+                  choices = c("Sale Price" = "Price",
+                              "Number of Rooms" = "Rooms",
+                              "Number of Carspots" = "Car",
+                              "Land Size in Meters" = "Landsize",
+                              "Year the House was Built" = "YearBuilt"))
+    }
+  })
+  
   ## prevent user from choosing the same categorical variables to summarize on
   observeEvent(c(input$cat_choice_1, input$cat_choice_2), {
     
@@ -247,6 +266,7 @@ server <- function(input, output, session) {
                   label = "Choose a Numerical Variable:",
                   choices = c("Sale Price" = "Price",
                               "Number of Rooms" = "Rooms",
+                              "Number of Carspots" = "Car",
                               "Land Size in Meters" = "Landsize",
                               "Year the House was Built" = "YearBuilt"))
     }
@@ -260,6 +280,7 @@ server <- function(input, output, session) {
                   label = "Choose another Numerical Variable:",
                   choices = c("Sale Price" = "Price",
                               "Number of Rooms" = "Rooms",
+                              "Number of Carspots" = "Car",
                               "Land Size in Meters" = "Landsize",
                               "Year the House was Built" = "YearBuilt"))
     }
@@ -286,6 +307,7 @@ server <- function(input, output, session) {
     num_choice_2 <- input$num_choice_2
     choices <- c("Sale Price" = "Price",
                  "Number of Rooms" = "Rooms",
+                 "Number of Carspots" = "Car",
                  "Land Size in Meters" = "Landsize",
                  "Year the House was Built" = "YearBuilt")
     
@@ -353,7 +375,7 @@ server <- function(input, output, session) {
   
   bar_plot_data <- eventReactive(input$sum_data, {
     ggplot(house_sample$data, aes(x = !!sym(input$cat_choice_1))) +
-      geom_bar() +
+      geom_bar(fill = "red", color = "black") +
       labs(x = input$cat_choice_1, y = "Count", title = paste("Counts of", input$cat_choice_1))
   })
   
@@ -363,15 +385,28 @@ server <- function(input, output, session) {
   })
   
   bar_plot_data2 <- eventReactive(input$sum_data, {
-    ggplot(house_sample$data, aes(x = !!sym(input$cat_choice_1), fill = !!sym(input$cat_choice_2))) +
-      geom_bar(position = "dodge") +
-      labs(x = input$cat_choice_1, fill = input$cat_choice_2, y = "Count", 
-           title = paste("Counts of", input$cat_choice_1, "by", input$cat_choice_2))
+    ggplot(house_sample$data, aes(x = !!sym(input$cat_choice_1))) +
+      geom_bar(position = "dodge", fill = "blue", color = "black") +
+      labs(x = input$cat_choice_1, y = "Count", 
+           title = paste("Counts of", input$cat_choice_1, "by", input$cat_choice_2)) +
+      facet_wrap(as.formula(paste("~", input$cat_choice_2)))
   })
   
   output$bar_plot2 <- renderPlot({
     req(sum_tracker(), input$sum_choice == "Categorical")
     bar_plot_data2()
+  })
+  
+  heatmap_data <- eventReactive(input$sum_data, {
+    ggplot(house_sample$data, aes(x = !!sym(input$cat_choice_1), y = !!sym(input$cat_choice_2), fill = !!sym(input$cat_choice_num))) +
+      geom_tile() +
+      labs(x = input$cat_choice_1, y = input$cat_choice_1, fill = input$cat_choice_num, 
+           title = paste("Heatmap of", input$cat_choice_1, "and", input$cat_choice_2, "by", input$cat_choice_num))
+  })
+  
+  output$heatmap_plot <- renderPlot({
+    req(sum_tracker(), input$sum_choice == "Categorical")
+    heatmap_data()
   })
   
   ## summarizing data based on numerical variable selections
@@ -398,9 +433,10 @@ server <- function(input, output, session) {
   })
   
   hist_plot_data <- eventReactive(input$sum_data, {
-    ggplot(house_sample$data, aes(x = !!sym(input$num_choice_1))) +
-      geom_histogram() +
-      labs(x = input$num_choice_1, y = "Count", title = paste("Distribution of", input$num_choice_1))
+    ggplot(house_sample$data |> drop_na(input$num_choice_1), aes(x = !!sym(input$num_choice_1))) +
+      geom_histogram(fill = "green", color = "black") +
+      labs(x = input$num_choice_1, y = "Count", 
+           title = paste("Distribution of", input$num_choice_1))
   })
   
   output$hist_plot <- renderPlot({
@@ -409,7 +445,8 @@ server <- function(input, output, session) {
   })
   
   scatter_plot_data <- eventReactive(input$sum_data, {
-    ggplot(house_sample$data, aes(x = !!sym(input$num_choice_1), y = !!sym(input$num_choice_2),
+    ggplot(house_sample$data |> drop_na(input$num_choice_1, input$num_choice_2, input$num_choice_cat), 
+           aes(x = !!sym(input$num_choice_1), y = !!sym(input$num_choice_2),
                                   color = !!sym(input$num_choice_cat))) +
       geom_point() +
       labs(x = input$num_choice_1, y = input$num_choice_2,

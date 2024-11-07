@@ -6,7 +6,9 @@ editor: visual
 
 ```{r}
 ## reading in data
-ta
+options(scipen = 999)
+
+house_data <- read_csv("Melbourne_housing_FULL.csv", col_names = TRUE)
 ```
 
 ```{r}
@@ -40,16 +42,17 @@ ggplot(data = house_data, aes(Method)) +
   geom_bar() +
   labs(y = "Count", title = "Number of Houses Sold by Each Method")
 
-ggplot(data = house_data, aes(Rooms)) +
+ggplot(data = house_data, aes(x = Rooms, fill = Method)) +
   geom_histogram() +
   labs(y = "Count", title = "Distribution of House Room Counts")
 ```
 
 ```{r}
 ## multivariate plots
-ggplot(data = house_data, aes(x = Rooms, fill = Type)) +
+ggplot(data = house_data, aes(x = Rooms)) +
   geom_bar() +
-  labs(y = "Count", title = "Number of Houses with Each Room Count by Type")
+  labs(y = "Count", title = "Number of Houses with Each Room Count by Type") +
+  facet_wrap(~ Type)
 
 ggplot(data = house_data, aes(x = Car, y = Price, color = Method)) +
   geom_point() +
@@ -59,10 +62,8 @@ ggplot(data = house_data, aes(x = Car, y = Price, color = Method)) +
 
 ```{r}
 ## additional plots
-ggplot(data = house_data, aes(x = Type, y = Rooms, fill = Price)) +
+ggplot(data = house_data, aes(x = Rooms, y = Type, fill = Price)) +
   geom_tile() +
-  labs(title = "Screen Time by Age & Device Model")
-
-
+  labs()
 ```
 
