@@ -92,10 +92,14 @@ ui <- fluidPage(
                  
                  conditionalPanel(
                    condition = "input.sum_choice == 'Categorical'",
+                   uiOutput("table_title_1"),
                    tableOutput("one_way_1"),
+                   uiOutput("table_title_2"),
                    tableOutput("one_way_2"),
+                   uiOutput("table_title_3"),
                    tableOutput("two_way"),
-                   plotOutput("bar_plot")
+                   plotOutput("bar_plot"),
+                   plotOutput("bar_plot2")
                  ),
                  
                  uiOutput("num_select_1"),
@@ -104,6 +108,7 @@ ui <- fluidPage(
                  
                  conditionalPanel(
                    condition = "input.sum_choice == 'Numerical'",
+                   uiOutput("sum_title"),
                    tableOutput("num_sum"),
                    plotOutput("hist_plot"),
                    plotOutput("scatter_plot")
@@ -192,8 +197,7 @@ server <- function(input, output, session) {
       
       selectInput(inputId = "cat_choice_1",
                   label = "Choose a Categorical Variable:",
-                  choices = c("Suburb",
-                              "Type of House" = "Type",
+                  choices = c("Type of House" = "Type",
                               "Method of Sale" = "Method",
                               "Postal Code" = "Postcode",
                               "Governing Council" = "CouncilArea",
@@ -207,8 +211,7 @@ server <- function(input, output, session) {
       
       selectInput(inputId = "cat_choice_2",
                   label = "Choose another Categorical Variable:",
-                  choices = c("Suburb",
-                              "Type of House" = "Type",
+                  choices = c("Type of House" = "Type",
                               "Method of Sale" = "Method",
                               "Postal Code" = "Postcode",
                               "Governing Council" = "CouncilArea",
@@ -221,8 +224,7 @@ server <- function(input, output, session) {
     
     cat_choice_1 <- input$cat_choice_1
     cat_choice_2 <- input$cat_choice_2
-    choices <- c("Suburb",
-                 "Type of House" = "Type",
+    choices <- c("Type of House" = "Type",
                  "Method of Sale" = "Method",
                  "Postal Code" = "Postcode",
                  "Governing Council" = "CouncilArea",
@@ -311,6 +313,11 @@ server <- function(input, output, session) {
     table(house_sample$data[[input$cat_choice_1]], useNA = "always")
   })
   
+  output$table_title_1 <- renderUI({
+    req(sum_tracker(), input$sum_choice == "Categorical")
+    p(paste("One-Way Contingency Table of", input$cat_choice_1))
+  })
+  
   output$one_way_1 <- renderTable({
     req(sum_tracker(), input$sum_choice == "Categorical")
     one_way_table_1()
@@ -318,6 +325,11 @@ server <- function(input, output, session) {
   
   one_way_table_2 <- eventReactive(input$sum_data, {
     table(house_sample$data[[input$cat_choice_2]], useNA = "always")
+  })
+  
+  output$table_title_2 <- renderUI({
+    req(sum_tracker(), input$sum_choice == "Categorical")
+    p(paste("One-Way Contingency Table of", input$cat_choice_2))
   })
   
   output$one_way_2 <- renderTable({
@@ -329,20 +341,37 @@ server <- function(input, output, session) {
     table(house_sample$data[[input$cat_choice_1]], house_sample$data[[input$cat_choice_2]], useNA = "always")
   })
   
+  output$table_title_3 <- renderUI({
+    req(sum_tracker(), input$sum_choice == "Categorical")
+    p(paste("Two-Way Contingency Table of", input$cat_choice_1, "and", input$cat_choice_2))
+  })
+  
   output$two_way <- renderTable({
     req(sum_tracker(), input$sum_choice == "Categorical")
     two_way_table()
   })
   
   bar_plot_data <- eventReactive(input$sum_data, {
-    ggplot(house_sample$data, aes(x = !!sym(input$cat_choice_1), fill = !!sym(input$cat_choice_2))) +
-      geom_bar(position = "dodge") +
-      labs(x = input$cat_choice_1, fill = input$cat_choice_2, y = "Count")
+    ggplot(house_sample$data, aes(x = !!sym(input$cat_choice_1))) +
+      geom_bar() +
+      labs(x = input$cat_choice_1, y = "Count", title = paste("Counts of", input$cat_choice_1))
   })
   
   output$bar_plot <- renderPlot({
     req(sum_tracker(), input$sum_choice == "Categorical")
     bar_plot_data()
+  })
+  
+  bar_plot_data2 <- eventReactive(input$sum_data, {
+    ggplot(house_sample$data, aes(x = !!sym(input$cat_choice_1), fill = !!sym(input$cat_choice_2))) +
+      geom_bar(position = "dodge") +
+      labs(x = input$cat_choice_1, fill = input$cat_choice_2, y = "Count", 
+           title = paste("Counts of", input$cat_choice_1, "by", input$cat_choice_2))
+  })
+  
+  output$bar_plot2 <- renderPlot({
+    req(sum_tracker(), input$sum_choice == "Categorical")
+    bar_plot_data2()
   })
   
   ## summarizing data based on numerical variable selections
@@ -358,6 +387,11 @@ server <- function(input, output, session) {
       )
   })
   
+  output$sum_title <- renderUI({
+    req(sum_tracker(), input$sum_choice == "Numerical")
+    p(paste("Numerical Summary Table of", input$num_choice_1, "and", input$num_choice_2, "by", input$num_choice_cat))
+  })
+  
   output$num_sum <- renderTable({
     req(sum_tracker(), input$sum_choice == "Numerical")
     num_sum_data()
@@ -366,7 +400,7 @@ server <- function(input, output, session) {
   hist_plot_data <- eventReactive(input$sum_data, {
     ggplot(house_sample$data, aes(x = !!sym(input$num_choice_1))) +
       geom_histogram() +
-      labs(x = input$num_choice_1, y = "Count")
+      labs(x = input$num_choice_1, y = "Count", title = paste("Distribution of", input$num_choice_1))
   })
   
   output$hist_plot <- renderPlot({
@@ -378,7 +412,8 @@ server <- function(input, output, session) {
     ggplot(house_sample$data, aes(x = !!sym(input$num_choice_1), y = !!sym(input$num_choice_2),
                                   color = !!sym(input$num_choice_cat))) +
       geom_point() +
-      labs(x = input$num_choice_1, y = input$num_choice_2)
+      labs(x = input$num_choice_1, y = input$num_choice_2,
+           title = paste(input$num_choice_1, "and", input$num_choice_2, "by", input$num_choice_cat))
   })
   
   output$scatter_plot <- renderPlot({
